@@ -12,6 +12,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   List<String> pdfPaths = [];
+  List<String> filePath = [];
 
   static const EventChannel _pdfEventChannel =
       EventChannel('com.sunil/pdfEventChannel');
@@ -38,6 +39,7 @@ class _HomePageState extends State<HomePage> {
             onPressed: () {
               setState(() {
                 pdfPaths = [];
+                filePath = [];
               });
               _getPDFFiles();
               listenForPdfList();
@@ -50,8 +52,8 @@ class _HomePageState extends State<HomePage> {
         itemBuilder: (context, index) {
           return ListTile(
             onTap: () {
-              debugPrint('path-- ${pdfPaths[index]}');
-              FileUtility.setPdfViewer(pdfPaths[index]);
+              debugPrint('filePath-- ${filePath[index]}');
+              FileUtility.setPdfViewer(filePath[index]);
             },
             leading: Text(
               "$index",
@@ -67,19 +69,27 @@ class _HomePageState extends State<HomePage> {
   void listenForPdfList() {
     setState(() {
       pdfPaths = [];
+      filePath = [];
     });
 
-    _pdfEventChannel.receiveBroadcastStream().listen((dynamic pdfList) {
-      if (pdfList is List<dynamic>) {
-        List<String> stringList = pdfList.cast<String>();
+    _pdfEventChannel.receiveBroadcastStream().listen((dynamic data) {
+      debugPrint("Data type: ${data.runtimeType}");
+
+      if (data is Map<dynamic, dynamic>) {
+        List<String> pdfList = List<String>.from(data['filenameList']);
+        List<String> filePathList = List<String>.from(data['filePathList']);
+        debugPrint('filePathList: $filePath');
+        debugPrint('pdfList: $pdfPaths');
+
         setState(() {
-          pdfPaths = stringList;
+          pdfPaths = pdfList;
+          filePath = filePathList;
         });
       } else {
-        debugPrint('Error: Invalid PDF list format');
+        debugPrint('Error: Invalid PDF data format');
       }
     }, onError: (dynamic error) {
-      debugPrint('Error receiving PDF list: $error');
+      debugPrint('Error receiving PDF data: $error');
     });
   }
 

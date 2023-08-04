@@ -9,7 +9,17 @@ import android.util.Log;
 
 import com.rajat.pdfviewer.PdfViewerActivity;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class OpenPdf {
+   static public Map<String, Object> getModelAsMap(Model model) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("filenameList", model.getFilenameList());
+        map.put("filePathList", model.getFilePathList());
+        return map;
+    }
+
     //SHOW PDF
     static void ShowPDf(Context context, String pathpdf){
         context.startActivity(
@@ -22,41 +32,7 @@ public class OpenPdf {
         );
     }
 //  Convert content URi to Absolute Path ans show in pdf then
-//public static String getPathFromContentUri(Context context, Uri contentUri) {
-//    String filePath = null;
-//    Cursor cursor = null;
-//    try {
-//        String[] projection = {DocumentsContract.Document.COLUMN_DOCUMENT_ID};
-//        cursor = context.getContentResolver().query(contentUri, projection, null, null, null);
-//        if (cursor != null && cursor.moveToFirst()) {
-//            String documentId = cursor.getString(cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DOCUMENT_ID));
-//            if (documentId != null) {
-//                String[] parts = documentId.split(":");
-//                if (parts.length > 1) {
-//                    String id = parts[1];
-//                    String selection = MediaStore.Files.FileColumns._ID + " = ?";
-//                    String[] selectionArgs = {id};
-//                    String[] projectionData = {MediaStore.Files.FileColumns.DATA};
-//                    Cursor dataCursor = context.getContentResolver().query(MediaStore.Files.getContentUri("external"), projectionData, selection, selectionArgs, null);
-//                    if (dataCursor != null && dataCursor.moveToFirst()) {
-//                        filePath = dataCursor.getString(dataCursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DATA));
-//                    }
-//                    if (dataCursor != null) {
-//                        dataCursor.close();
-//                    }
-//                }
-//            }
-//        }
-//    } catch (Exception e) {
-//        e.printStackTrace();
-//    } finally {
-//        if (cursor != null) {
-//            cursor.close();
-//        }
-//    }
-////    Log.e("getPathFromContentUri", "File Path: " + filePath); // Log the file path
-//    return filePath;
-//}
+
 public static String getPathFromContentUri(Context context, Uri contentUri) {
     String filePath = null;
     Cursor cursor = null;

@@ -13,6 +13,9 @@ import android.provider.DocumentsContract
 import androidx.documentfile.provider.DocumentFile
 import android.provider.MediaStore
 import android.util.Log
+import android.view.Display.Mode
+import android.widget.ProgressBar
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.plugin.common.EventChannel
@@ -28,9 +31,9 @@ import java.util.Locale
 
 class MainActivity : FlutterActivity() {
     private val REQUEST_CODE_SAF_PERMISSION = 101
-    private val pdfList = ArrayList<String>()
     private lateinit var eventChannel: EventChannel
     val pdfListStreamHandler = PdfListStreamHandler()
+    lateinit var pdfsearchList : PdfSearchService
 
     companion object {
         private const val METHOD_CHANNEL = "com.sunil/pdfmethodChannel"
@@ -39,6 +42,8 @@ class MainActivity : FlutterActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        pdfsearchList = PdfSearchService() // Initialize the property with an instance
+
         MethodChannel(flutterEngine!!.dartExecutor.binaryMessenger, METHOD_CHANNEL)
             .setMethodCallHandler { call: MethodCall, result: MethodChannel.Result ->
                 when (call.method) {
@@ -50,8 +55,24 @@ class MainActivity : FlutterActivity() {
                     }
                     "openPdf" -> {
                         val Path = call.argument<String>("pdfPath")
-                        Log.e( "absolute path: ", Path.toString())
-                        OpenPdf.ShowPDf(MainActivity@this,Path)
+
+                        if(Path !=null){
+                        var actualPath = pdfsearchList.getRealPath(context, Uri.parse(Path))
+                            if(actualPath!=null){
+                                try {
+                                    Log.e( "absolute path: ", actualPath)
+                                    OpenPdf.ShowPDf(MainActivity@this,actualPath)
+                                }catch (e:Exception){
+                                    e.printStackTrace()
+                                }
+                            }
+                            else{
+                                Toast.makeText(applicationContext,"PDF not exist or corrupted", Toast.LENGTH_LONG).show()
+
+                            }
+
+
+                        }
                     }
                     else -> {
                         result.notImplemented()
@@ -73,7 +94,7 @@ class MainActivity : FlutterActivity() {
         override fun onCancel(arguments: Any?) {
             eventSink = null
         }
-        fun sendPdfList(context: Context,pdfList: List<String>) {
+        fun sendPdfList(context: Context,pdfListsModel: Model) {
 //            val filePathList = ArrayList<String>()
 //
 //            for (uriString in pdfList) {
@@ -85,10 +106,10 @@ class MainActivity : FlutterActivity() {
 //                    Log.e("sendPdfList", "Could not convert URI to file path: $uriString")
 //                }
 //            }
-            val pdfListCopy = ArrayList(pdfList)
-
+           var mapTosend= OpenPdf.getModelAsMap( Model(ArrayList(pdfListsModel.filenameList), ArrayList(pdfListsModel.filePathList)))
+            Log.e("pdfListCopy", " $mapTosend")
             MainScope().launch {
-                eventSink?.success(pdfListCopy)
+                eventSink?.success(mapTosend)
             }
         }
 
@@ -125,7 +146,7 @@ class MainActivity : FlutterActivity() {
 
     private fun getPDFFilesFromAllAccessibleDirectories()
     {
-        val pdfList = ArrayList<String>()
+        val pdfList =Model(ArrayList(), ArrayList())
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             // For Android 10 (API level 29) and above, use SAF
@@ -136,13 +157,12 @@ class MainActivity : FlutterActivity() {
             val directory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
             traverseDirectoryForPDFFiles(directory, pdfList)
         }
-        Log.e("pdf return-->: ", pdfList.toString())
 
     }
 
 
     @RequiresApi(Build.VERSION_CODES.KITKAT)
-    private fun traverseDirectoryForPDFFiles(directory: File, pdfList: ArrayList<String>) {
+    private fun traverseDirectoryForPDFFiles(directory: File, pdfList: Model) {
         if (directory.isDirectory) {
             val files = directory.listFiles()
             if (files != null) {
@@ -150,7 +170,9 @@ class MainActivity : FlutterActivity() {
                     if (file.isDirectory) {
                         traverseDirectoryForPDFFiles(file, pdfList)
                     } else if (file.isFile && file.name.lowercase(Locale.getDefault()).endsWith(".pdf")) {
-                        pdfList.add(file.absolutePath)
+                        pdfList.addFilePath(file.absolutePath)
+                        pdfList.addFilename(file.name)
+
                     }
                 }
             }
@@ -158,8 +180,9 @@ class MainActivity : FlutterActivity() {
     }
 
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-    private fun traverseDirectoryForPDFFiles(directoryUri: Uri, pdfList: ArrayList<String>) {
+    private fun traverseDirectoryForPDFFiles(directoryUri: Uri, pdfLists: Model) {
         val contentResolver = contentResolver
+
         val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(directoryUri, DocumentsContract.getDocumentId(directoryUri))
         contentResolver.query(childrenUri, arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE), null, null, null)?.use { cursor ->
             while (cursor.moveToNext()) {
@@ -167,16 +190,21 @@ class MainActivity : FlutterActivity() {
                 val mimeType = cursor.getString(1)
                 if (mimeType == "application/pdf") {
                     val documentUri = DocumentsContract.buildDocumentUriUsingTree(directoryUri, documentId)
-                    pdfList.add(documentUri.toString())
-                    pdfListStreamHandler.sendPdfList(MainActivity@this,pdfList)
+//                    pdfList.add(documentUri.toString())
+                    val fileNamee=this@MainActivity.pdfsearchList.getFileName(MainActivity@this,documentUri)
+
+                    pdfLists.addFilename(fileNamee!!)
+                    pdfLists.addFilePath(documentUri.toString()!!)
+                    pdfListStreamHandler.sendPdfList(MainActivity@this,pdfLists)
 
                 } else if (DocumentsContract.Document.MIME_TYPE_DIR == mimeType) {
                     val childUri = DocumentsContract.buildChildDocumentsUriUsingTree(directoryUri, documentId)
-                    traverseDirectoryForPDFFiles(childUri, pdfList)
+                    traverseDirectoryForPDFFiles(childUri, pdfLists)
                 }
             }
         }
     }
+
 
 
     // Inside your activity's onActivityResult function
@@ -189,15 +217,15 @@ class MainActivity : FlutterActivity() {
                 // Now you have access to the selected directory via SAF
                 val directory = DocumentFile.fromTreeUri(this, uri)
                 if (directory != null && directory.isDirectory) {
-                    pdfList.clear() // Clear the previous list before adding new items
 
                     val progressDialog = ProgressDialog.show(this, "Please wait", "Loading...")
                     progressDialog.setCancelable(false)
+                    var tempList = Model(ArrayList(), ArrayList())
 
                     CoroutineScope(Dispatchers.Main).launch {
                         try {
                             val pdfListDeferred = async(Dispatchers.IO) {
-                                val tempList = ArrayList<String>()
+                                 tempList = Model(ArrayList(), ArrayList()) // Create a new Model instance
                                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                                     traverseDirectoryForPDFFiles(directory.uri, tempList)
                                 } else {
@@ -205,12 +233,11 @@ class MainActivity : FlutterActivity() {
                                 }
                                 tempList
                             }
-
-                            pdfList.clear()
-                            pdfList.addAll(pdfListDeferred.await())
+                            tempList.clearListModel()
+                            val pdfListsModel = pdfListDeferred.await()
 
 //                            val pdfLists = PdfLists(pdfList, emptyList()) // Empty second list for now
-                            pdfListStreamHandler.sendPdfList(this@MainActivity, pdfList)
+                            pdfListStreamHandler.sendPdfList(this@MainActivity, pdfListsModel)
                         } catch (e: Exception) {
                             e.printStackTrace()
                         } finally {

@@ -11,12 +11,19 @@ import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.util.Log
 import java.io.File
-
-
-
-
-
 class PdfSearchService {
+
+    fun getFilePathFromUri(context: Context, uri: Uri): String? {
+        val projection = arrayOf(MediaStore.Images.Media.DATA)
+        val cursor = context.contentResolver.query(uri, projection, null, null, null)
+        cursor?.use {
+            if (it.moveToFirst()) {
+                val columnIndex = it.getColumnIndexOrThrow(MediaStore.Images.Media.DATA)
+                return it.getString(columnIndex)
+            }
+        }
+        return null
+    }
 
     fun getRealPath(context: Context?, fileUri: Uri?): String {
         // SDK < API11
