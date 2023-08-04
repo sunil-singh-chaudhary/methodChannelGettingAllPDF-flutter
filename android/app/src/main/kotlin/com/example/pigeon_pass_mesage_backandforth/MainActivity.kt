@@ -1,22 +1,17 @@
 package  com.example.pigeon_pass_mesage_backandforth
 import android.app.Activity
-import android.app.ProgressDialog
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
-import android.preference.PreferenceManager
 import android.provider.DocumentsContract
-import androidx.documentfile.provider.DocumentFile
 import android.provider.MediaStore
 import android.util.Log
-import android.view.Display.Mode
-import android.widget.ProgressBar
-import android.widget.Toast
 import androidx.annotation.RequiresApi
+import androidx.documentfile.provider.DocumentFile
+import com.kaopiz.kprogresshud.KProgressHUD
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
@@ -34,6 +29,7 @@ class MainActivity : FlutterActivity() {
     private lateinit var eventChannel: EventChannel
     val pdfListStreamHandler = PdfListStreamHandler()
     lateinit var pdfsearchList : PdfSearchService
+    private var hud: KProgressHUD? = null
 
     companion object {
         private const val METHOD_CHANNEL = "com.sunil/pdfmethodChannel"
@@ -55,24 +51,18 @@ class MainActivity : FlutterActivity() {
                     }
                     "openPdf" -> {
                         val Path = call.argument<String>("pdfPath")
+                        val fileNamee=this@MainActivity.pdfsearchList.getFileName(MainActivity@this,Uri.parse(Path))
 
-                        if(Path !=null){
+
                         var actualPath = pdfsearchList.getRealPath(context, Uri.parse(Path))
-                            if(actualPath!=null){
-                                try {
-                                    Log.e( "absolute path: ", actualPath)
-                                    OpenPdf.ShowPDf(MainActivity@this,actualPath)
-                                }catch (e:Exception){
-                                    e.printStackTrace()
-                                }
-                            }
-                            else{
-                                Toast.makeText(applicationContext,"PDF not exist or corrupted", Toast.LENGTH_LONG).show()
+                        //using actual path can convert uri to string when needed here dont need it work on Uri
+                        //direactly
 
-                            }
+                        val intent = Intent(this, PdfViewerActivity::class.java)
+                        intent.putExtra("pdfFilePath", Path)
+                        intent.putExtra("pdfFileName", fileNamee)
 
-
-                        }
+                        startActivity(intent)
                     }
                     else -> {
                         result.notImplemented()
@@ -95,17 +85,6 @@ class MainActivity : FlutterActivity() {
             eventSink = null
         }
         fun sendPdfList(context: Context,pdfListsModel: Model) {
-//            val filePathList = ArrayList<String>()
-//
-//            for (uriString in pdfList) {
-//                val uri = Uri.parse(uriString)
-//                val actualPath = OpenPdf.getPathFromContentUri(context, uri)
-//                if (actualPath != null) {
-//                    filePathList.add(actualPath)
-//                } else {
-//                    Log.e("sendPdfList", "Could not convert URI to file path: $uriString")
-//                }
-//            }
            var mapTosend= OpenPdf.getModelAsMap( Model(ArrayList(pdfListsModel.filenameList), ArrayList(pdfListsModel.filePathList)))
             Log.e("pdfListCopy", " $mapTosend")
             MainScope().launch {
@@ -218,8 +197,8 @@ class MainActivity : FlutterActivity() {
                 val directory = DocumentFile.fromTreeUri(this, uri)
                 if (directory != null && directory.isDirectory) {
 
-                    val progressDialog = ProgressDialog.show(this, "Please wait", "Loading...")
-                    progressDialog.setCancelable(false)
+                    hud = KProgressHUD.create(this)
+                        .setStyle(KProgressHUD.Style.SPIN_INDETERMINATE).show()
                     var tempList = Model(ArrayList(), ArrayList())
 
                     CoroutineScope(Dispatchers.Main).launch {
@@ -235,13 +214,15 @@ class MainActivity : FlutterActivity() {
                             }
                             tempList.clearListModel()
                             val pdfListsModel = pdfListDeferred.await()
-
+                            hud?.dismiss()
 //                            val pdfLists = PdfLists(pdfList, emptyList()) // Empty second list for now
                             pdfListStreamHandler.sendPdfList(this@MainActivity, pdfListsModel)
                         } catch (e: Exception) {
+                            hud?.dismiss()
+
                             e.printStackTrace()
                         } finally {
-                            progressDialog.dismiss() // Hide the progress bar
+                            hud?.dismiss()
                         }
                     }
                 }

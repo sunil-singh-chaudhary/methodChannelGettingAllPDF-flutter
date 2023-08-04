@@ -5,10 +5,6 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
-import android.util.Log;
-
-import com.rajat.pdfviewer.PdfViewerActivity;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -21,16 +17,16 @@ public class OpenPdf {
     }
 
     //SHOW PDF
-    static void ShowPDf(Context context, String pathpdf){
-        context.startActivity(
-                PdfViewerActivity.Companion.launchPdfFromPath(
-                        context,
-                        pathpdf,
-                        "Title",  "",
-                        true,
-                        false)
-        );
-    }
+//    static void ShowPDf(Context context, String pathpdf){
+//        context.startActivity(
+//                PdfViewerActivity.Companion.launchPdfFromPath(
+//                        context,
+//                        pathpdf,
+//                        "Title",  "",
+//                        true,
+//                        false)
+//        );
+//    }
 //  Convert content URi to Absolute Path ans show in pdf then
 
 public static String getPathFromContentUri(Context context, Uri contentUri) {

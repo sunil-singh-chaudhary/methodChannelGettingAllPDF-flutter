@@ -23,4 +23,14 @@ class PermissionHandler {
       return Future.value(false);
     }
   }
+
+  static void initPermissoinAndCallMethodChannel(
+      {required Function() iscallbackPermission}) async {
+    bool isPermission = await PermissionHandler.requestStoragePermission();
+    if (isPermission) {
+      iscallbackPermission();
+    } else {
+      debugPrint('dont have permission');
+    }
+  }
 }

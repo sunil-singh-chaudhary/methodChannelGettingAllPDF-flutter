@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 class FileUtility {
   static const MethodChannel _channel =
       MethodChannel('com.sunil/pdfmethodChannel');
+  static const EventChannel _pdfEventChannel = EventChannel(
+      'com.sunil/pdfEventChannel'); //same event name in andriod if modified then change in android MainActivity too
 
   // Method to get all PDF files from device storage
   static getAllPDFFiles() async {
@@ -45,5 +47,27 @@ class FileUtility {
     } on PlatformException catch (e) {
       debugPrint('Error getting PDF list: ${e.message}');
     }
+  }
+
+  static void listenForPdfList(
+      {required Function(List<String> pdfList) callbackpdfList,
+      required Function(List<String> filePathList) callbackfilePathList}) {
+    debugPrint("Strt listning: ");
+
+    _pdfEventChannel.receiveBroadcastStream().listen((dynamic data) {
+      debugPrint("Data type: ${data.runtimeType}");
+
+      if (data is Map<dynamic, dynamic>) {
+        List<String> pdfList = List<String>.from(data['filenameList']);
+        List<String> filePathList = List<String>.from(data['filePathList']);
+
+        callbackpdfList(pdfList);
+        callbackfilePathList(filePathList);
+      } else {
+        debugPrint('Error: Invalid PDF data format');
+      }
+    }, onError: (dynamic error) {
+      debugPrint('Error receiving PDF data: $error');
+    });
   }
 }
