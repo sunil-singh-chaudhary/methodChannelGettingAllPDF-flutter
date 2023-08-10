@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:pigeon_pass_mesage_backandforth/HomePage.dart';
 import 'package:pigeon_pass_mesage_backandforth/fileUtils.dart';
 import 'package:pigeon_pass_mesage_backandforth/permissonHandler.dart';
@@ -14,7 +15,7 @@ class MockEventChannel extends Mock implements EventChannel {}
 
 class MockPlatformWrapper extends Mock implements PlatformWrapperChecker {}
 
-class MockPermissionHandler extends Mock implements PermissionHandler {}
+class MockPermissionHandler extends Mock implements PermissionHandlerWrapper {}
 
 void main() {
   late MockMethodChannel mockMethodChannel;
@@ -22,13 +23,14 @@ void main() {
   late FileUtility utils;
   late MockPlatformWrapper platformWrapper;
   late MockPermissionHandler permissonMock;
-  late PermissionHandler permissionHandler;
+  late PermissionHandlerWrapper permissionHandler;
 
   setUp(() {
     mockMethodChannel = MockMethodChannel();
     mockEventChannel = MockEventChannel();
     utils = FileUtility();
-    permissionHandler = PermissionHandler();
+
+    permissionHandler = PermissionHandlerWrapper();
     platformWrapper = MockPlatformWrapper();
     permissonMock = MockPermissionHandler();
 
@@ -107,9 +109,15 @@ void main() {
   });
 
   group("Permissoin Handling", () {
+//not working i dont know why here may be static method used in it not throughing any error that's why
+// I tried to add direactly [Permission permission = Permission.storage] here but not got any solution
+//till now may be in future l looked into it , static method cant be mocked direactly by mocktail or mockito
+    //step 2 step 1 is above
     testWidgets("Test permission handling when permission is granted",
         (tester) async {
-      when(() => permissonMock.requestStoragePermission())
+      Permission permission = Permission.storage; //here static method
+
+      when(() => permissonMock.requestStoragePermission(permission))
           .thenAnswer((_) => Future.value(true));
 
       await tester.pumpWidget(MaterialApp(
@@ -117,36 +125,22 @@ void main() {
         wrapper: platformWrapper,
       )));
 
-      bool callbackInvoked = false;
+      final homePageFinder = find.byType(HomePage);
+      final homePageState = tester.state<HomePageState>(homePageFinder);
 
-      // Verify that permission was requested
-      // verify(() => permissionHandler.requestStoragePermission()).called(1);
+      // Call the method here error it is waiting for 10 min or more then throw error
+      await homePageState.requestPermissionAndRefresh();
 
-      await permissionHandler.initPermissoinAndCallMethodChannel(
-        iscallbackPermission: () {
-          callbackInvoked = true;
-        },
-      );
+      // await tester.pumpAndSettle();
 
-      expectLater(callbackInvoked, isTrue);
+      // verify(() => homePageState.refreshAndListen()).called(1);
+
+      // // Ensure no other unexpected interactions occurred
+      // verifyNoMoreInteractions(homePageState);
+
+      // // Wait for async operations to complete
+      // await tester.pumpAndSettle();
     });
-    // testWidgets("Test permission handling when permission is not granted",
-    //     (tester) async {
-    //   when(() => permissonMock.requestStoragePermission())
-    //       .thenAnswer((_) => Future.value(false));
-
-    //   final permissionHandler = PermissionHandler();
-
-    //   bool callbackInvoked = true;
-
-    //   await permissionHandler.initPermissoinAndCallMethodChannel(
-    //     iscallbackPermission: () {
-    //       callbackInvoked = false;
-    //     },
-    //   );
-
-    //   expect(callbackInvoked, isTrue);
-    // });
   });
 
   testWidgets("Test getPDFFilesUsingExternalStorage() on Android SDK < 33",

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'fileUtils.dart';
 import 'permissonHandler.dart';
 import 'platformwrapper.dart';
@@ -8,26 +9,24 @@ class HomePage extends StatefulWidget {
   HomePage({Key? key, required this.wrapper}) : super(key: key);
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<HomePage> createState() => HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class HomePageState extends State<HomePage> {
   var fileutils = FileUtility();
   List<String> pdfPaths = [];
   List<String> filePath = [];
-  PermissionHandler handler = PermissionHandler();
-  bool _isPermissionGranted = false;
-  @override
+  PermissionHandlerWrapper handler = PermissionHandlerWrapper();
   void initState() {
     super.initState();
     requestPermissionAndRefresh();
   }
 
-  Future<void> requestPermissionAndRefresh() async {
-    bool isPermission = await handler.requestStoragePermission();
+  requestPermissionAndRefresh() async {
+    Permission permission = Permission.storage;
+    bool isPermission = await handler.requestStoragePermission(permission);
     if (isPermission) {
       setState(() {
-        _isPermissionGranted = true;
         refreshAndListen();
       });
     } else {
