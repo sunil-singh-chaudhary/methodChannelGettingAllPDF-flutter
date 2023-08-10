@@ -1,7 +1,7 @@
 package com.example.pigeon_pass_mesage_backandforth
 
 
-data class Model(val filenameList: MutableList<String>, val filePathList: MutableList<String>) {
+data class Model(var filenameList: MutableList<String>, var filePathList: MutableList<String>) {
 
     fun addFilename(filename: String) {
         filenameList.add(filename)

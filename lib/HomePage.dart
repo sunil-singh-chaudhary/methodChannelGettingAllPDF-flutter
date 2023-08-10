@@ -1,33 +1,42 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'fileUtils.dart';
 import 'permissonHandler.dart';
+import 'platformwrapper.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({Key? key}) : super(key: key);
+  PlatformWrapperChecker wrapper;
+  HomePage({Key? key, required this.wrapper}) : super(key: key);
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
+  var fileutils = FileUtility();
   List<String> pdfPaths = [];
   List<String> filePath = [];
-
+  PermissionHandler handler = PermissionHandler();
+  bool _isPermissionGranted = false;
   @override
   void initState() {
     super.initState();
-    PermissionHandler.initPermissoinAndCallMethodChannel(
-      iscallbackPermission: () {
-        setState(() {
-          refreshAndListen();
-        });
-      },
-    );
+    requestPermissionAndRefresh();
   }
 
-  void _getPDFFiles() async {
-    await FileUtility.getAllPDFFiles();
+  Future<void> requestPermissionAndRefresh() async {
+    bool isPermission = await handler.requestStoragePermission();
+    if (isPermission) {
+      setState(() {
+        _isPermissionGranted = true;
+        refreshAndListen();
+      });
+    } else {
+      debugPrint('Permission not granted');
+    }
+  }
+
+  void getPDFFiles() async {
+    await fileutils.getAllPDFFiles(widget.wrapper);
   }
 
   @override
@@ -51,7 +60,7 @@ class _HomePageState extends State<HomePage> {
           return ListTile(
             onTap: () {
               debugPrint('filePath-- ${filePath[index]}');
-              FileUtility.setPdfViewer(filePath[index]);
+              fileutils.setPdfViewer(filePath[index]);
             },
             leading: Text(
               "$index",
@@ -64,9 +73,13 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void refreshAndListen() {
-    _getPDFFiles();
-    FileUtility.listenForPdfList(
+  refreshAndListen() {
+    getPDFFiles();
+    listenPDF();
+  }
+
+  listenPDF() {
+    fileutils.listenForPdfList(
       callbackpdfList: (pdfList) {
         setState(() {
           pdfPaths = pdfList;

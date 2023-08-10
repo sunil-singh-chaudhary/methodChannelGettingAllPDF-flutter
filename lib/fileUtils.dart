@@ -1,20 +1,26 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:pigeon_pass_mesage_backandforth/platformwrapper.dart';
 
 class FileUtility {
-  static const MethodChannel _channel =
-      MethodChannel('com.sunil/pdfmethodChannel');
-  static const EventChannel _pdfEventChannel = EventChannel(
-      'com.sunil/pdfEventChannel'); //same event name in andriod if modified then change in android MainActivity too
+  var methodchannel = const MethodChannel('com.sunil/pdfmethodChannel');
+  var pdfEventChannel = const EventChannel('com.sunil/pdfEventChannel');
+
+  //same event name in andriod if modified then change in android MainActivity too
+  Future<int> getAndroidSdkVersion() async {
+    final version = await const MethodChannel('com.sunil.androidVersion')
+        .invokeMethod<int>('getAndroidSdkVersion');
+    return version ?? 0; // Default value or handle appropriately
+  }
 
   // Method to get all PDF files from device storage
-  static getAllPDFFiles() async {
-    if (Platform.isAndroid) {
-      if (int.parse(Platform.version.split('.')[0]) >= 33) {
-        _getPDFFilesUsingMediaStore();
+  getAllPDFFiles(PlatformWrapperChecker wrapperPlatform) async {
+    if (wrapperPlatform.isAndroid()) {
+      if (wrapperPlatform.getAndroidSdkVersion() >= 33) {
+        getPDFFilesUsingMediaStore();
       } else {
-        _getPDFFilesUsingExternalStorage();
+        getPDFFilesUsingExternalStorage();
       }
     } else if (Platform.isIOS) {
       // Implement iOS file access if needed
@@ -24,37 +30,35 @@ class FileUtility {
   }
 
   // Method to get PDF files using MediaStore on Android 11 and above
-  static _getPDFFilesUsingMediaStore() async {
+  getPDFFilesUsingMediaStore() async {
     try {
-      await _channel.invokeMethod('getAllPDFFiles');
+      await methodchannel.invokeMethod('getAllPDFFiles');
     } on PlatformException catch (e) {
       debugPrint('Error getting PDF list: ${e.message}');
     }
   }
 
   // Method to get PDF files using getExternalStoragePublicDirectory on Android below 11
-  static _getPDFFilesUsingExternalStorage() async {
+  getPDFFilesUsingExternalStorage() async {
     try {
-      await _channel.invokeMethod('getPDFFilesFromExternalStorage');
+      await methodchannel.invokeMethod('getPDFFilesFromExternalStorage');
     } on PlatformException catch (e) {
       debugPrint('Error getting PDF list: ${e.message}');
     }
   }
 
-  static setPdfViewer(String selectedPdfPath) async {
+  setPdfViewer(String selectedPdfPath) async {
     try {
-      await _channel.invokeMethod('openPdf', {'pdfPath': selectedPdfPath});
+      await methodchannel.invokeMethod('openPdf', {'pdfPath': selectedPdfPath});
     } on PlatformException catch (e) {
       debugPrint('Error getting PDF list: ${e.message}');
     }
   }
 
-  static void listenForPdfList(
+  listenForPdfList(
       {required Function(List<String> pdfList) callbackpdfList,
       required Function(List<String> filePathList) callbackfilePathList}) {
-    debugPrint("Strt listning: ");
-
-    _pdfEventChannel.receiveBroadcastStream().listen((dynamic data) {
+    pdfEventChannel.receiveBroadcastStream().listen((dynamic data) {
       debugPrint("Data type: ${data.runtimeType}");
 
       if (data is Map<dynamic, dynamic>) {

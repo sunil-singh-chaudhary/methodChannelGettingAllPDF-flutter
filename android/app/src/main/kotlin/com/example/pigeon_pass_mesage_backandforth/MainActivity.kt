@@ -16,6 +16,7 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
@@ -169,12 +170,12 @@ class MainActivity : FlutterActivity() {
                 val mimeType = cursor.getString(1)
                 if (mimeType == "application/pdf") {
                     val documentUri = DocumentsContract.buildDocumentUriUsingTree(directoryUri, documentId)
-//                    pdfList.add(documentUri.toString())
                     val fileNamee=this@MainActivity.pdfsearchList.getFileName(MainActivity@this,documentUri)
 
                     pdfLists.addFilename(fileNamee!!)
                     pdfLists.addFilePath(documentUri.toString()!!)
-                    pdfListStreamHandler.sendPdfList(MainActivity@this,pdfLists)
+
+//                    pdfListStreamHandler.sendPdfList(MainActivity@this,pdfLists)
 
                 } else if (DocumentsContract.Document.MIME_TYPE_DIR == mimeType) {
                     val childUri = DocumentsContract.buildChildDocumentsUriUsingTree(directoryUri, documentId)
@@ -197,11 +198,21 @@ class MainActivity : FlutterActivity() {
                 val directory = DocumentFile.fromTreeUri(this, uri)
                 if (directory != null && directory.isDirectory) {
 
+                    val exceptionHandler = CoroutineExceptionHandler { coroutineContext, throwable ->
+                        // Handle the exception here
+                        // You can access the thrown exception using the 'throwable' parameter
+                        // You can also access coroutineContext if needed\
+                        println("HANDLING COROUTINE CANCLE EXCEPTION")
+
+                    }
+
                     hud = KProgressHUD.create(this)
                         .setStyle(KProgressHUD.Style.SPIN_INDETERMINATE).show()
+
                     var tempList = Model(ArrayList(), ArrayList())
 
-                    CoroutineScope(Dispatchers.Main).launch {
+                    //YOU can cance scope will caught above Coroutine Eception handler
+                    val scope =   CoroutineScope(Dispatchers.Main+ exceptionHandler).launch {
                         try {
                             val pdfListDeferred = async(Dispatchers.IO) {
                                  tempList = Model(ArrayList(), ArrayList()) // Create a new Model instance
@@ -210,16 +221,14 @@ class MainActivity : FlutterActivity() {
                                 } else {
                                     traverseDirectoryForPDFFiles(File(uri.path!!), tempList)
                                 }
-                                tempList
+                                return@async tempList //future object return
                             }
                             tempList.clearListModel()
-                            val pdfListsModel = pdfListDeferred.await()
+                            val pdfListsModel = pdfListDeferred.await() //waiting for object to get
                             hud?.dismiss()
-//                            val pdfLists = PdfLists(pdfList, emptyList()) // Empty second list for now
                             pdfListStreamHandler.sendPdfList(this@MainActivity, pdfListsModel)
                         } catch (e: Exception) {
                             hud?.dismiss()
-
                             e.printStackTrace()
                         } finally {
                             hud?.dismiss()

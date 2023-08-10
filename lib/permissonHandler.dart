@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class PermissionHandler {
-  static Future<bool> requestStoragePermission() async {
+  Future<bool> requestStoragePermission() async {
     // Check if the permission is already granted
     var status = await Permission.storage.status;
 
@@ -24,9 +24,11 @@ class PermissionHandler {
     }
   }
 
-  static void initPermissoinAndCallMethodChannel(
+  initPermissoinAndCallMethodChannel(
       {required Function() iscallbackPermission}) async {
-    bool isPermission = await PermissionHandler.requestStoragePermission();
+    PermissionHandler handler = PermissionHandler();
+
+    bool isPermission = await handler.requestStoragePermission();
     if (isPermission) {
       iscallbackPermission();
     } else {
