@@ -17,6 +17,7 @@ class HomePageState extends State<HomePage> {
   List<String> pdfPaths = [];
   List<String> filePath = [];
   PermissionHandlerWrapper handler = PermissionHandlerWrapper();
+  @override
   void initState() {
     super.initState();
     requestPermissionAndRefresh();

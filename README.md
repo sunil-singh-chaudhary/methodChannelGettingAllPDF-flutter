@@ -1,16 +1,17 @@
-# pigeon_pass_mesage_backandforth
+# METHOD CHANNLE WITH EVENT CHANNEL DEMO 
 
-A new Flutter project.
+METHOD Channel and EVENT Channel in flutter 
 
-## Getting Started
+## In this Project 
+1. Created method Channel and Event channel to communicate with android Navtive 
+2. Then search all pdf files in device support all android OS ,
+3. for android 32 and below using getExternalStorage() and for 33 and above using MediaStore for       fetching pdf files
+4. when get all files show in flutter listview 
+5. when click on pdf name send the path of pdf file again to android native and show the pdf uri in PDF VIEWER FIle using EVENT CHANNEL
 
-This project is a starting point for a Flutter application.
 
-A few resources to get you started if this is your first Flutter project:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## ADDED TEST FOR WIDGET
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+1. Tried to add test for main.dart widget
+2. Tried to add test for HomePage.dart widget
