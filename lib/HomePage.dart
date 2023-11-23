@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'fileUtils.dart';
+import 'listviewwidget.dart';
 import 'permissonHandler.dart';
 import 'platformwrapper.dart';
 
@@ -54,22 +55,7 @@ class HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: ListView.builder(
-        itemCount: pdfPaths.length,
-        itemBuilder: (context, index) {
-          return ListTile(
-            onTap: () {
-              debugPrint('filePath-- ${filePath[index]}');
-              fileutils.setPdfViewer(filePath[index]);
-            },
-            leading: Text(
-              "$index",
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            title: Text(pdfPaths[index]),
-          );
-        },
-      ),
+      body: ListViewWidget(pdfPaths: pdfPaths, filePath: filePath, fileutils: fileutils),
     );
   }
 
@@ -93,3 +79,4 @@ class HomePageState extends State<HomePage> {
     );
   }
 }
+
