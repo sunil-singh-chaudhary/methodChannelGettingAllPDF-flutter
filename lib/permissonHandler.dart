@@ -12,7 +12,7 @@ class PermissionHandlerWrapper {
       return Future.value(true);
     }
 
-    // Handle the permission status
+    // Handle the permission status HERE FOR STORAGE
     if (status.isGranted) {
       // Permission granted
       debugPrint("Storage permission is granted.");
